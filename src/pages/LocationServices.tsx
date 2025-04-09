@@ -123,7 +123,7 @@ const LocationServices = () => {
     });
     
     // Fetch nearby stations for Visakhapatnam
-    fetchStations([83.3184, 17.7268]);
+    fetchStations([83.3184, 17.5268]);
   };
   
   const handleSelectSuggestion = (suggestion: any) => {

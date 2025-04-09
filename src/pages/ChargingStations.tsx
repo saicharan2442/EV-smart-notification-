@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Filter, MapPin, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PageTransition from '@/components/layout/PageTransition';
-import Card, { CardContent, CardHeader, CardTitle } from '@/components/shared/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import StationCard from '@/components/stations/StationCard';
-import Button from '@/components/shared/Button';
+import { Button } from '@/components/ui/button';
 import MapView from '@/components/map/MapView';
 import { useApp } from '@/context/AppContext';
 import { useMapbox } from '@/context/MapboxContext';
@@ -17,22 +16,31 @@ const ChargingStations = () => {
   const navigate = useNavigate();
   const { userLocation, nearbyStations, setNearbyStations, setSelectedStation } = useApp();
   const { mapboxToken, isMapboxReady } = useMapbox();
+
   const [filterAvailable, setFilterAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [showAlert, setShowAlert] = useState(false);
+
   const filteredStations = filterAvailable
-    ? nearbyStations.filter(station => station.available)
+    ? nearbyStations.filter((station) => station.available)
     : nearbyStations;
-  
-  // Fetch stations when the component mounts
+
+  const checkStationRange = (stations: any[]) => {
+    const inRange = stations.filter((station) => station.distance <= 50);
+    if (inRange.length === 0) {
+      setShowAlert(true);
+    }
+  };
+
   useEffect(() => {
     const getStations = async () => {
       if (!isMapboxReady || !mapboxToken) return;
-      
+
       setIsLoading(true);
       try {
         const stations = await fetchNearbyStations(userLocation, mapboxToken);
         setNearbyStations(stations);
+        checkStationRange(stations);
         toast.success('Stations found', {
           description: `Found ${stations.length} charging stations nearby.`,
         });
@@ -45,29 +53,30 @@ const ChargingStations = () => {
         setIsLoading(false);
       }
     };
-    
+
     getStations();
   }, [userLocation, mapboxToken, isMapboxReady, setNearbyStations]);
-  
+
   const handleSelectStation = (station: any) => {
     setSelectedStation(station);
     toast.success('Station selected', {
       description: `You've selected ${station.name}`,
     });
   };
-  
+
   const handleNavigate = (station: any) => {
     setSelectedStation(station);
     navigate('/navigation');
   };
-  
+
   const handleRefreshStations = async () => {
     if (!isMapboxReady || !mapboxToken) return;
-    
+
     setIsLoading(true);
     try {
       const stations = await fetchNearbyStations(userLocation, mapboxToken);
       setNearbyStations(stations);
+      checkStationRange(stations);
       toast.success('Stations refreshed', {
         description: `Found ${stations.length} charging stations nearby.`,
       });
@@ -80,21 +89,17 @@ const ChargingStations = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleGetCurrentLocation = () => {
     if (navigator.geolocation) {
       toast.loading('Getting your current location...');
-      
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { longitude, latitude } = position.coords;
           const newLocation: [number, number] = [longitude, latitude];
-          
           toast.success('Location updated', {
             description: 'Your current location has been updated on the map.',
           });
-          
-          // Fetch nearby stations with the new location
           handleRefreshWithNewLocation(newLocation);
         },
         (error) => {
@@ -110,14 +115,15 @@ const ChargingStations = () => {
       });
     }
   };
-  
+
   const handleRefreshWithNewLocation = async (location: [number, number]) => {
     if (!isMapboxReady || !mapboxToken) return;
-    
+
     setIsLoading(true);
     try {
       const stations = await fetchNearbyStations(location, mapboxToken);
       setNearbyStations(stations);
+      checkStationRange(stations);
       toast.success('Stations found', {
         description: `Found ${stations.length} charging stations near your current location.`,
       });
@@ -130,10 +136,27 @@ const ChargingStations = () => {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <PageTransition>
-      <div className="container max-w-6xl mx-auto pt-24 px-4 pb-16">
+      <div className="container max-w-6xl mx-auto pt-24 px-4 pb-16 relative">
+        {/* Centered Alert Box */}
+        {showAlert && (
+          <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-10 rounded-xl shadow-xl max-w-xl w-full text-center">
+              <h2 className="text-3xl font-bold text-red-600 mb-4">No Stations Within 50-80 km</h2>
+              <p className="text-lg text-gray-700 mb-6">
+                Your current location has no charging stations within a 50-80 km range.your current charge is not sufficent to reach. Please consider
+                updating your location or planning a different route Accordingly.
+              </p>
+              <Button onClick={() => setShowAlert(false)} className="mx-auto text-lg px-6 py-2">
+                OK
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Heading */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -145,116 +168,58 @@ const ChargingStations = () => {
             Find nearby charging stations for your electric vehicle
           </p>
         </motion.div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="md:col-span-3">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <MapPin className="mr-2 h-5 w-5" />
-                      Nearby Charging Stations
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGetCurrentLocation}
-                      icon={<MapPin className="h-4 w-4" />}
-                    >
-                      Use My Location
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <MapView showStations className="h-[400px] w-full mb-4" />
-                </CardContent>
+
+        {/* Controls */}
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRefreshStations}>
+              <Loader2 className="mr-2 h-4 w-4" /> Refresh
+            </Button>
+            <Button variant="outline" onClick={handleGetCurrentLocation}>
+              <MapPin className="mr-2 h-4 w-4" /> Use Current Location
+            </Button>
+          </div>
+          <Button variant="ghost" onClick={() => setFilterAvailable(!filterAvailable)}>
+            <Filter className="mr-2 h-4 w-4" />
+            {filterAvailable ? 'Show All' : 'Show Available Only'}
+          </Button>
+        </div>
+
+        {/* Map */}
+        <div className="mb-10">
+          <MapView userLocation={userLocation} stations={filteredStations} />
+        </div>
+
+        {/* Stations List */}
+        {isLoading ? (
+          <div className="text-center text-muted-foreground">Loading nearby stations...</div>
+        ) : filteredStations.length === 0 ? (
+          <div className="text-center text-muted-foreground">No stations found.</div>
+        ) : (
+          <div className="space-y-6">
+            {filteredStations.map((station, index) => (
+              <Card
+                key={index}
+                className="w-full flex flex-col sm:flex-row items-center justify-between p-4 hover:shadow-lg transition"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center sm:gap-6 w-full">
+                  <div className="flex-grow">
+                    <CardHeader className="p-0 mb-2 sm:mb-0">
+                      <CardTitle className="text-xl">{station.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <StationCard
+                        station={station}
+                        onSelect={() => handleSelectStation(station)}
+                        onNavigate={() => handleNavigate(station)}
+                      />
+                    </CardContent>
+                  </div>
+                </div>
               </Card>
-            </motion.div>
+            ))}
           </div>
-        </div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6 flex justify-between items-center"
-        >
-          <div className="flex items-center gap-2">
-            <Button
-              variant={filterAvailable ? "primary" : "outline"}
-              size="sm"
-              onClick={() => setFilterAvailable(!filterAvailable)}
-              icon={<Filter className="h-4 w-4" />}
-            >
-              {filterAvailable ? "Showing Available" : "Show All"}
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefreshStations}
-              icon={isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-              disabled={isLoading}
-            >
-              Refresh Stations
-            </Button>
-          </div>
-          
-          <div className="text-sm text-muted-foreground">
-            {isLoading ? 'Loading stations...' : `${filteredStations.length} stations found`}
-          </div>
-        </motion.div>
-        
-        <div className="grid grid-cols-1 gap-4">
-          {isLoading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-          ) : (
-            <>
-              {filteredStations.map((station, i) => (
-                <motion.div
-                  key={station.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.4,
-                    delay: i * 0.05 + 0.2,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
-                  <StationCard
-                    station={station}
-                    onSelect={handleSelectStation}
-                    onNavigate={handleNavigate}
-                  />
-                </motion.div>
-              ))}
-              
-              {filteredStations.length === 0 && !isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className="text-center p-12 bg-secondary rounded-xl"
-                >
-                  <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h2 className="text-xl font-semibold mb-2">No Stations Found</h2>
-                  <p className="text-muted-foreground">
-                    {filterAvailable
-                      ? "No available charging stations found nearby. Try showing all stations."
-                      : "No charging stations found in your area."}
-                  </p>
-                </motion.div>
-              )}
-            </>
-          )}
-        </div>
+        )}
       </div>
     </PageTransition>
   );
