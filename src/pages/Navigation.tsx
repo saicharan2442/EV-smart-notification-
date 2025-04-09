@@ -10,7 +10,7 @@ import MapView from '@/components/map/MapView';
 import { useApp } from '@/context/AppContext';
 import { useMapbox } from '@/context/MapboxContext';
 import { toast } from 'sonner';
-
+  
 const Navigation = () => {
   const navigate = useNavigate();
   const { selectedStation, routeDirections, userLocation } = useApp();

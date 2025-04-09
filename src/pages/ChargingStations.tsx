@@ -144,9 +144,9 @@ const ChargingStations = () => {
         {showAlert && (
           <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-10 rounded-xl shadow-xl max-w-xl w-full text-center">
-              <h2 className="text-3xl font-bold text-red-600 mb-4">No Stations Within 50-80 km</h2>
+              <h2 className="text-3xl font-bold text-red-600 mb-4">No Stations Within up to 80 km</h2>
               <p className="text-lg text-gray-700 mb-6">
-                Your current location has no charging stations within a 50-80 km range.your current charge is not sufficent to reach. Please consider
+                Your current location has no charging stations within a up to 80 km range.your current charge is not sufficent to reach. <br /> Please consider
                 updating your location or planning a different route Accordingly.
               </p>
               <Button onClick={() => setShowAlert(false)} className="mx-auto text-lg px-6 py-2">
