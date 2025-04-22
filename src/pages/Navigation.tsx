@@ -143,7 +143,7 @@ const Navigation = () => {
           </div>
         )}
       </div>
-    </PageTransition>
+    </PageTransition> 
   );
 };
 
